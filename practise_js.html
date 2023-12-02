@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag Number Verification</title>
+  <link rel="stylesheet" href="./bootstrap/bootstrap.css">
+  <link rel="stylesheet" href="./jquery/jquery-ui.css">
+  <script src="./jquery/jquery.js"></script>
+  <script src="./jquery/jquery-ui.min.js"></script>
+  <script src="./bootstrap/bootstrap.js"></script>
+  <style>
+    body {
+      user-select: none;
+    }
+
+    .draggable {
+      width: 50px;
+      height: 50px;
+      padding: 10px;
+      margin: 10px;
+      cursor: move;
+      text-align: center;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      font-family: "微軟正黑體";
+    }
+
+    .droppable {
+      width: 70px;
+      height: 70px;
+      margin: 10px;
+      color: rgba(0, 0, 0, .2);
+      text-align: center;
+      padding: 10px;
+      border: 2px dashed #aaa;
+      display: inline-block;
+      line-height: 50px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">Drag Number Verification</h2>
+
+    <div id="draggable-container" class="d-flex justify-content-center">
+      <div class="draggable" data-number=""></div>
+      <div class="draggable" data-number=""></div>
+      <div class="draggable" data-number=""></div>
+      <div class="draggable" data-number=""></div>
+    </div>
+
+    <div id="droppable-container" class="text-center mt-4">
+      <div class="droppable" data-used="false"></div>
+      <div class="droppable" data-used="false"></div>
+      <div class="droppable" data-used="false"></div>
+      <div class="droppable" data-used="false"></div>
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-primary mr-2" id="checkBtn">Verify</button>
+      <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
+    </div>
+  </div>
+
+  <!--scr-->
+
+  <script>
+
+    $(function () {
+
+      function randomNum() {
+        return Math.floor(Math.random() * 100) + 1;
+      }
+
+      function randomArray(length) {
+        const arr = [];
+        while (arr.length < length) {
+          const randomNumber = randomNum();
+          if (!arr.includes(randomNumber)) {
+            arr.push(randomNumber);
+          }
+        }
+        return arr;
+      }
+
+      function refreshNumbers() {
+        const randomArr = randomArray(4);
+        $(".draggable").each(function (index) {
+          const number = randomArr[index];
+          $(this).attr('data-number', number).text(number);
+        });
+
+        const shuffledArr = randomArr.slice().sort(() => Math.random() - 0.5);
+        $(".droppable").each(function (index) {
+          const number = shuffledArr[index];
+          $(this).attr('data-number', number).text(number).attr('data-used', 'false').data('dropped', false);
+        });
+      }
+
+      function handleDrop(event, ui) {
+        var droppedElement = ui.helper;
+        var targetDroppable = $(this);
+
+        var alreadyDropped = targetDroppable.children().length > 0;
+
+        if (!alreadyDropped) {
+          var droppableOffset = targetDroppable.offset();
+          var draggableOffset = droppedElement.offset();
+
+          var offsetX = droppableOffset.left - draggableOffset.left + (targetDroppable.width() - droppedElement.width()) / 2;
+          var offsetY = droppableOffset.top - draggableOffset.top + (targetDroppable.height() - droppedElement.height()) / 2;
+
+          if (offsetX !== 0 || offsetY !== 0) {
+            droppedElement.offset({
+              top: draggableOffset.top + offsetY,
+              left: draggableOffset.left + offsetX
+            });
+
+            var expectedNumber = $('.draggable[data-number="' + droppedElement.data('number') + '"]').data('number');
+            var actualNumber = targetDroppable.data('number');
+
+            if (expectedNumber !== actualNumber) {
+              targetDroppable.attr('data-used', 'false').css('background-color', 'transparent');
+            } else {
+              targetDroppable.attr('data-used', 'true');
+            }
+
+            targetDroppable.data('dropped', true);
+          }
+        }
+      }
+
+      refreshNumbers();
+
+      $(".draggable").draggable({
+        cursor: 'move',
+        revert: function (droppable) {
+          if (!droppable) {
+            return true;
+          }
+        },
+        revertDuration: 200,
+        start: function (event, ui) {
+          $(this).css('z-index', '999');
+        },
+        stop: function (event, ui) {
+          $(this).css('z-index', 'auto');
+        }
+      });
+
+      $(".droppable").droppable({
+        drop: handleDrop,
+        accept: function () {
+          return !$(this).data('dropped');
+        }
+      });
+
+      $("#checkBtn").click(() => {
+        var correct = true;
+
+        $(".droppable").each(function () {
+          var expectedNumber = $('.draggable[data-number="' + $(this).data('number') + '"]').data('number');
+          var actualNumber = $(this).data('number');
+
+          if ($(this).attr('data-used') === 'true' && expectedNumber !== actualNumber) {
+            correct = false;
+          } else if ($(this).attr('data-used') === 'true') {
+            correct = true;
+          } else {
+            correct = false;
+          }
+        });
+
+        correct ? alert("correct") : alert("mistake");
+        location.reload();
+      })
+
+      $("#refreshBtn").click(() => {
+        $(".draggable").css({"top" : "0", "left" : "0"});
+        $("droppable").attr({"data-used" : "false", "data-number" : "false"});
+        refreshNumbers();
+      })
+    });
+
+  </script>
+</body>
+
+</html>
